@@ -1,75 +1,41 @@
-name: Docker Container Start
+name: Build and Run Docker Containers on VM
 
 on:
-  workflow_dispatch: # Allows manual triggering of the workflow
+  push:
+    branches:
+      - main  # Trigger workflow on push to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger workflow on PR creation or update to the main branch
 
 jobs:
-  authenticate-gcp:
+  docker:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      # Step 2: Set up Google Cloud SDK
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: keen-metric-442709-h0
-          version: latest
-          skip_install: false
+    # Step 2: Set up SSH key for authentication
+    - name: Set up SSH key for VM
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        # Optionally, add the VM's public key to known hosts to prevent verification prompt
+        ssh-keyscan -H 34.132.171.168 >> ~/.ssh/known_hosts
 
-      # Step 3: Save GCP service account key to a file
-      - name: Save GCP service account key to file
-        run: |
-          echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
-        env:
-          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
+    # Step 3: SSH into VM and run Docker build and container commands
+    - name: Connect to VM and Build & Run Docker Containers
+      run: |
+        ssh -o StrictHostKeyChecking=no ubuntu@<your-vm-ip> << 'EOF'
+          # Navigate to the directory where your Dockerfiles are located
+          cd /home/kiritisagar
 
-      # Step 4: Authenticate with Google Cloud using the service account key
-      - name: Authenticate with Google Cloud
-        run: |
-          gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
-          gcloud config set project keen-metric-442709-h0
+          # Build Docker image
+          docker build -t your-image-name .
 
-      # Step 5: Set up SSH key and ensure public key exists
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
-          chmod 600 ~/.ssh/google_compute_engine
-
-          # Check if the public key file exists, generate it if missing
-          if [ ! -f ~/.ssh/google_compute_engine.pub ]; then
-            echo "Public key not found. Generating from the private key..."
-            ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
-            echo "Public key generated."
-          else
-            echo "Public key already exists."
-          fi
-
-          echo "SSH key and permissions set."
-
-      # Step 6: Test SSH connectivity
-      - name: Test SSH connectivity
-        run: |
-          ssh -i ~/.ssh/google_compute_engine \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              ubuntu@34.132.171.168 "echo 'SSH successful'"
-      
-      # Step 7: Run Docker build and container commands
-      - name: Build and start Docker container
-        run: |
-          ssh -i ~/.ssh/google_compute_engine \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              ${USER}@${INSTANCE_IP} "
-                cd /home/kiritisagar &&
-                docker build -t my-app . &&
-                docker run -d --name my-app-container -p 80:80 my-app
-              "
-        env:
-          USER: your-instance-username
-          INSTANCE_IP: your-instance-public-ip
+          # Run the Docker container
+          docker run -d -p 80:80 your-image-name
+        EOF
