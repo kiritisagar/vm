@@ -57,28 +57,3 @@ jobs:
           gcloud compute instances start spot --zone us-central1-a
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
-
-      # Step 7: Set up SSH key and test connectivity
-      - name: Set up SSH key and test connectivity
-        run: |
-          set -x
-          mkdir -p ~/.ssh
-          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
-          chmod 600 ~/.ssh/google_compute_engine
-          echo "SSH key and permissions set."
-          
-          # Test SSH connectivity to the instance
-          ssh-keyscan -H 34.67.240.211 || { echo "ssh-keyscan failed"; exit 1; }
-          echo "ssh-keyscan completed successfully"
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
-
-      # Step 8: Run Docker build and container command using gcloud SSH
-      - name: SSH into VM via IAP and run Docker commands
-        run: |
-          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "
-            docker build -t my-app /home/kiritisagar &&
-            docker run -d --name my-app-container -p 80:80 my-app
-          "
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
