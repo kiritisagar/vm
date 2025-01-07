@@ -1,4 +1,4 @@
-name: GCP VM START
+name: docker containers start
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
