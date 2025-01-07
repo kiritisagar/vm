@@ -3,7 +3,6 @@ name: GCP Deployment
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
 
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -25,6 +24,5 @@ jobs:
 
     - name: Deploy to Google Cloud
       run: |
-        # Your deploy commands here, for example:
-        # gcloud app browse
+        # Replace with your specific deployment commands
         gcloud deploy --project keen-metric-442709-h0
