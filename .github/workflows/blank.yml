@@ -15,7 +15,7 @@ jobs:
       run: |
         mkdir -p ~/.ssh
         # Use GitHub Secret to securely provide the SSH private key
-        echo "${{ secrets.VM_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         # Optionally, add the VM's public key to known hosts to prevent verification prompt
         ssh-keyscan -H 34.132.171.168 >> ~/.ssh/known_hosts
