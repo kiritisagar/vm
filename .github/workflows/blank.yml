@@ -1,62 +1,78 @@
-name: SSH to GCP Instance
+name: Docker Container Start
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
-  ssh-to-instance:
-    name: SSH to GCP Instance
+  authenticate-gcp:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Google Cloud CLI
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+      # Step 2: Set up Google Cloud SDK
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: keen-metric-442709-h0
+          version: latest
+          skip_install: false
 
-    - name: Authenticate gcloud
-      run: |
-        echo "${{ secrets.GCP_SA_KEY }}" > $HOME/gcp-key.json
-        gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
+      # Step 3: Save GCP service account key to a file
+      - name: Save GCP service account key to file
+        run: |
+          echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
 
-    - name: Configure GCP project
-      run: |
-        gcloud config set project ${{ secrets.GCP_PROJECT_ID }}
+      # Step 4: Authenticate with Google Cloud using the service account key
+      - name: Authenticate with Google Cloud
+        run: |
+          gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
+          gcloud config set project keen-metric-442709-h0
 
-    - name: Add SSH Key
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.GCP_SSH_PRIVATE_KEY }}" > ~/.ssh/google_compute_engine
-        chmod 600 ~/.ssh/google_compute_engine
-        echo "SSH key added and permissions set."
+      # Step 5: Set up SSH key and ensure public key exists
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
+          chmod 600 ~/.ssh/google_compute_engine
 
-    - name: Add Firewall Rule for IAP Access
-      run: |
-        gcloud compute firewall-rules create allow-iap-ingress \
-          --direction=INGRESS \
-          --action=ALLOW \
-          --rules=tcp:22 \
-          --source-ranges=35.235.240.0/20 \
-          --target-tags=iap-access || echo "Firewall rule already exists."
+          # Check if the public key file exists, generate it if missing
+          if [ ! -f ~/.ssh/google_compute_engine.pub ]; then
+            echo "Public key not found. Generating from the private key..."
+            ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
+            echo "Public key generated."
+          else
+            echo "Public key already exists."
+          fi
 
-    - name: SSH into GCP Instance
-      run: |
-        gcloud compute ssh spot \
-          --zone=us-central1-a \
-          --tunnel-through-iap \
-          --command="echo 'SSH successful'" \
-          --ssh-flag="-o StrictHostKeyChecking=no" \
-          --ssh-flag="-o UserKnownHostsFile=/dev/null"
+          echo "SSH key and permissions set."
 
-    - name: Cleanup Temporary Files
-      if: always()
-      run: |
-        rm -f $HOME/gcp-key.json
-        rm -f ~/.ssh/google_compute_engine
+      # Step 6: Test SSH connectivity
+      - name: Test SSH connectivity
+        run: |
+          ssh -i ~/.ssh/google_compute_engine \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              ${USER}@${INSTANCE_IP} "echo 'SSH successful'"
+        env:
+          USER: your-instance-username
+          INSTANCE_IP: your-instance-public-ip
+      
+      # Step 7: Run Docker build and container commands
+      - name: Build and start Docker container
+        run: |
+          ssh -i ~/.ssh/google_compute_engine \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              ${USER}@${INSTANCE_IP} "
+                cd /home/kiritisagar &&
+                docker build -t my-app . &&
+                docker run -d --name my-app-container -p 80:80 my-app
+              "
+        env:
+          USER: your-instance-username
+          INSTANCE_IP: your-instance-public-ip
