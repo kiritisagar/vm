@@ -4,49 +4,49 @@ on:
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
-  deploy:
+  authenticate-gcp:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout the repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Authenticate with Google Cloud using Service Account Key
-      uses: google-github-actions/auth@v0
-      with:
-        credentials_json: ${{ secrets.GCP_KEY_JSON }}  # Pass the secret for the service account key
+      # Step 1: Set up Google Cloud CLI
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: keen-metric-442709-h0
+          version: latest
+          skip_install: false
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: keen-metric-442709-h0
-        version: latest
+      # Step 2: Check if the GCP_KEY_JSON secret is available
+      - name: Check GCP_KEY_JSON secret length
+        run: |
+          echo "Secret length: ${#GCP_KEY_JSON}"
+          if [ -z "${GCP_KEY_JSON}" ]; then
+            echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
+          fi
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
 
-    - name: Debugging the GCP_KEY_JSON secret
-      run: |
-        echo "Secret length: ${#GCP_KEY_JSON}"  # Check the length of the secret
-        if [ -z "${GCP_KEY_JSON}" ]; then
-          echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
-        fi
+      # Step 3: Write the GCP_KEY_JSON to a file
+      - name: Save GCP service account key to file
+        run: |
+          echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
 
-    - name: Write GCP key JSON to a file and validate
-      run: |
-        # Step 1: Check if the secret is valid JSON by writing it to a file
-        echo "${GCP_KEY_JSON}" > $HOME/gcp-key.json
+      # Step 4: Validate the GCP service account key (check if JSON is valid)
+      - name: Validate GCP Key JSON
+        run: |
+          if jq empty $HOME/gcp-key.json; then
+            echo "Valid JSON file"
+          else
+            echo "Error: The JSON file is invalid" && exit 1
+          fi
 
-        # Step 2: Validate if the JSON is correctly formatted
-        if jq empty $HOME/gcp-key.json; then
-          echo "Valid JSON file"
-        else
-          echo "Error: The JSON file is invalid" && exit 1
-        fi
-
-        # Step 3: Authenticate with Google Cloud using the service account key file
-        gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
-        gcloud config set project keen-metric-442709-h0
-
-    - name: Deploy to Google Cloud
-      run: |
-        # Your deploy commands here, for example:
-        # gcloud app browse
-        gcloud deploy --project keen-metric-442709-h0
+      # Step 5: Authenticate with Google Cloud using the service account key
+      - name: Authenticate with Google Cloud
+        run: |
+          gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
+          gcloud config set project keen-metric-442709-h0
