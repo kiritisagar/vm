@@ -1,4 +1,4 @@
-name: docker containers start
+name: docker container start
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
@@ -60,8 +60,9 @@ jobs:
           chmod 600 ~/.ssh/google_compute_engine
           echo "SSH key and permissions set."
           
-          # Test SSH connectivity using gcloud
-          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'"
+          # Disable confirmation prompt for SSH key overwrite
+          # Test SSH connectivity using gcloud with -o StrictHostKeyChecking=no
+          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" -- -o StrictHostKeyChecking=no
           if [ $? -eq 0 ]; then
             echo "SSH connectivity test passed."
           else
@@ -70,7 +71,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
 
-      # Step 8: Run Docker build and container command using gcloud SSH
+      # Step 7: Run Docker build and container command using gcloud SSH
       - name: SSH into VM via IAP and run Docker commands
         run: |
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "
