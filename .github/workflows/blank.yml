@@ -1,13 +1,8 @@
 name: Build and Run Docker Containers on VM
 
 on:
-  push:
-    branches:
-      - main  # Trigger workflow on push to the main branch
-  pull_request:
-    branches:
-      - main  # Trigger workflow on PR creation or update to the main branch
-
+  workflow_dispatch:
+  
 jobs:
   docker:
     runs-on: ubuntu-latest
