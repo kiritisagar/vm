@@ -20,14 +20,14 @@ jobs:
     - name: Debugging the GCP_KEY_JSON secret
       run: |
         echo "Secret length: ${#GCP_KEY_JSON}"  # Check the length of the secret
-        if [ -z "${{ secrets.GCP_KEY_JSON }}" ]; then
+        if [ -z "${GCP_KEY_JSON}" ]; then
           echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
         fi
 
     - name: Write GCP key JSON to a file and validate
       run: |
         # Step 1: Check if the secret is valid JSON by writing it to a file
-        echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
+        echo "${GCP_KEY_JSON}" > $HOME/gcp-key.json
 
         # Step 2: Validate if the JSON is correctly formatted
         if jq empty $HOME/gcp-key.json; then
