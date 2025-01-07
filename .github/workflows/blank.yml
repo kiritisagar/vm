@@ -1,4 +1,4 @@
-name: docker container start
+name: Docker containers run
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
@@ -56,11 +56,12 @@ jobs:
         run: |
           set -x
           mkdir -p ~/.ssh
+          
+          # Add SSH private key from secrets to the instance
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
           chmod 600 ~/.ssh/google_compute_engine
           echo "SSH key and permissions set."
-          
-          # Disable confirmation prompt for SSH key overwrite
+
           # Test SSH connectivity using gcloud with -o StrictHostKeyChecking=no
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" -- -o StrictHostKeyChecking=no
           if [ $? -eq 0 ]; then
