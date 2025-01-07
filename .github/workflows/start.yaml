@@ -57,3 +57,14 @@ jobs:
           gcloud compute instances start spot --zone us-central1-a
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
+
+      # Step 7: SSH into the VM and Build & Run Docker (with port mapping)
+      - name: SSH into VM and Build & Run Docker
+        run: |
+          gcloud compute ssh spot --zone us-central1-a --command "
+            docker build -t my-app /home/kiritisagar &&
+            docker run -d --name my-app-container -p 80:80 my-app
+          "
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
+
