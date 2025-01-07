@@ -1,4 +1,4 @@
-name: Docker containers run
+name: docker container start
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
@@ -63,7 +63,8 @@ jobs:
           echo "SSH key and permissions set."
 
           # Test SSH connectivity using gcloud with -o StrictHostKeyChecking=no
-          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" -- -o StrictHostKeyChecking=no
+          # The key will not be overwritten here
+          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
           if [ $? -eq 0 ]; then
             echo "SSH connectivity test passed."
           else
