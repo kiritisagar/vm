@@ -15,6 +15,7 @@ jobs:
 
     - name: Debug Authentication
       run: |
+        echo "Authenticating with GCP..."
         gcloud auth list
         gcloud config list
         gcloud projects list
