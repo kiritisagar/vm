@@ -1,0 +1,33 @@
+name: Stop GCP VM
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: 'keen-metric-442709-h0'
+        required: true
+        type: string
+      zone:
+        description: 'us-central1-a'
+        required: true
+        type: string
+      instance_name:
+        description: 'spot'
+        required: true
+        type: string
+
+jobs:
+  stop-vm:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        export_default_credentials: true
+
+    - name: Stop GCP VM
+      run: |
+        gcloud compute instances stop "${{ github.event.inputs.instance_name }}" \
+          --project="${{ github.event.inputs.project_id }}" \
+          --zone="${{ github.event.inputs.zone }}"
