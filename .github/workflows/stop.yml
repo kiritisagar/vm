@@ -4,15 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       project_id:
-        description: 'keen-metric-442709-h0'
         required: true
         type: string
       zone:
-        description: 'us-central1-a'
         required: true
         type: string
       instance_name:
-        description: 'spot'
         required: true
         type: string
 
