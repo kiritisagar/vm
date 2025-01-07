@@ -64,7 +64,7 @@ jobs:
           gcloud compute ssh spot --zone us-central1-a --command "
             docker build -t my-app /home/kiritisagar &&
             docker run -d --name my-app-container -p 80:80 my-app
-          " --no-use-tty
+          " 
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
 
