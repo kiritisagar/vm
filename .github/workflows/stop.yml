@@ -1,29 +1,31 @@
-name: Stop GCP VM
+name: GCP Deployment
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
-  stop-vm:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-    - name: Set up Google Cloud CLI
-      uses: google-github-actions/setup-gcloud@v1
+    - name: Checkout the repository
+      uses: actions/checkout@v2
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
       with:
-        service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-        export_default_credentials: true
+        project_id: keen-metric-442709-h0
+        credentials: ${{ secrets.GCP_KEY_JSON }}  # This uses the GitHub secret directly
 
     - name: Authenticate with Google Cloud
       run: |
-        echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-key.json
-        cat /tmp/gcp-key.json  # Debug: Check the key content for correct formatting
-        gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
-        gcloud auth list
-        gcloud config list
-        gcloud projects list
+        echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
+        gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
 
-    - name: Stop GCP VM
+    - name: Deploy to Google Cloud
       run: |
-        gcloud compute instances stop "spot" \
-          --project="keen-metric-442709-h0" \
-          --zone="us-central1-a"
+        # Your deploy commands here, for example:
+        # gcloud app browse
+        gcloud deploy --project keen-metric-442709-h0
