@@ -23,6 +23,12 @@ jobs:
     - name: SSH into VM and run Docker commands
       run: |
         ssh -o StrictHostKeyChecking=no ubuntu@34.132.171.168 << 'EOF'
+          # Ensure user has permission to run Docker commands by adding to the Docker group
+          sudo usermod -aG docker ubuntu
+          
+          # Log out and log back in for group changes to take effect
+          newgrp docker || true
+
           # Navigate to the directory where your Dockerfiles are located
           cd /home/kiritisagar
           
