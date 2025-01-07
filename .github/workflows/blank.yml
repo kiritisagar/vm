@@ -57,10 +57,7 @@ jobs:
           ssh -i ~/.ssh/google_compute_engine \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
-              ${USER}@${INSTANCE_IP} "echo 'SSH successful'"
-        env:
-          USER: your-instance-username
-          INSTANCE_IP: your-instance-public-ip
+              ubuntu@34.123.45.67 "echo 'SSH successful'"
       
       # Step 7: Run Docker build and container commands
       - name: Build and start Docker container
