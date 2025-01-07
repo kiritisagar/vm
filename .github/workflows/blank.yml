@@ -1,17 +1,18 @@
-name: docker container start
+name: Docker Container Start
 
 on:
-  workflow_dispatch:  # This allows manual triggering of the workflow
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
   authenticate-gcp:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 1: Set up Google Cloud CLI
+      # Step 2: Set up Google Cloud SDK
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -19,66 +20,51 @@ jobs:
           version: latest
           skip_install: false
 
-      # Step 2: Check if the GCP_KEY_JSON secret is available
-      - name: Check GCP_KEY_JSON secret length
-        run: |
-          echo "Secret length: ${#GCP_KEY_JSON}"
-          if [ -z "${GCP_KEY_JSON}" ]; then
-            echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
-          fi
-        env:
-          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
-
-      # Step 3: Write the GCP_KEY_JSON to a file
+      # Step 3: Save GCP service account key to a file
       - name: Save GCP service account key to file
         run: |
           echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
         env:
           GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
 
-      # Step 4: Validate the GCP service account key (check if JSON is valid)
-      - name: Validate GCP Key JSON
-        run: |
-          if jq empty $HOME/gcp-key.json; then
-            echo "Valid JSON file"
-          else
-            echo "Error: The JSON file is invalid" && exit 1
-          fi
-
-      # Step 5: Authenticate with Google Cloud using the service account key
+      # Step 4: Authenticate with Google Cloud using the service account key
       - name: Authenticate with Google Cloud
         run: |
           gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
           gcloud config set project keen-metric-442709-h0
 
-      # Step 6: Use existing SSH key for GCP VM connection
-      - name: Set up SSH key and test connectivity
+      # Step 5: Set up SSH key and ensure public key exists
+      - name: Set up SSH key
         run: |
-          set -x
           mkdir -p ~/.ssh
-          
-          # Use the existing private key provided via secrets
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
           chmod 600 ~/.ssh/google_compute_engine
+
+          # Check if the public key file exists, generate it if missing
+          if [ ! -f ~/.ssh/google_compute_engine.pub ]; then
+            echo "Public key not found. Generating from the private key..."
+            ssh-keygen -y -f ~/.ssh/google_compute_engine > ~/.ssh/google_compute_engine.pub
+            echo "Public key generated."
+          else
+            echo "Public key already exists."
+          fi
+
           echo "SSH key and permissions set."
 
-          # Test SSH connectivity with `--no-add-key` to prevent key upload
+      # Step 6: Test SSH connectivity
+      - name: Test SSH connectivity
+        run: |
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" \
             -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null --no-add-key
-          if [ $? -eq 0 ]; then
-            echo "SSH connectivity test passed."
-          else
-            echo "SSH connectivity test failed." && exit 1
-          fi
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcp-key.json
 
-      # Step 7: Run Docker build and container command using gcloud SSH
-      - name: SSH into VM via IAP and run Docker commands
+      # Step 7: Run Docker build and container commands
+      - name: Build and start Docker container
         run: |
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "
             docker build -t my-app /home/kiritisagar &&
             docker run -d --name my-app-container -p 80:80 my-app
           " -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null --no-add-key
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcp-key.json
