@@ -1,4 +1,4 @@
-name: GCP Deployment
+name: GCP VM STOP
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
