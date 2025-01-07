@@ -2,16 +2,6 @@ name: Stop GCP VM
 
 on:
   workflow_dispatch:
-    inputs:
-      project_id:
-        required: true
-        type: string
-      zone:
-        required: true
-        type: string
-      instance_name:
-        required: true
-        type: string
 
 jobs:
   stop-vm:
@@ -25,6 +15,6 @@ jobs:
 
     - name: Stop GCP VM
       run: |
-        gcloud compute instances stop "${{ github.event.inputs.instance_name }}" \
-          --project="${{ github.event.inputs.project_id }}" \
-          --zone="${{ github.event.inputs.zone }}"
+        gcloud compute instances stop "spot" \
+          --project="keen-metric-442709-h0" \
+          --zone="us-central1-a"
