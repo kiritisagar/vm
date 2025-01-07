@@ -17,9 +17,14 @@ jobs:
         project_id: keen-metric-442709-h0
         credentials: ${{ secrets.GCP_KEY_JSON }}  # This uses the GitHub secret directly
 
+    - name: Check if the secret is being passed
+      run: |
+        echo "Secret length: ${#GCP_KEY_JSON}"  # Debugging line
+
     - name: Authenticate with Google Cloud
       run: |
         echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
+        echo "Secret length: ${#GCP_KEY_JSON}"  # For debugging
         cat $HOME/gcp-key.json # To confirm the file contents
         gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
 
