@@ -26,10 +26,8 @@ jobs:
         # Optionally, add the VM's public key to known hosts to prevent verification prompt
         ssh-keyscan -H 34.132.171.168 >> ~/.ssh/known_hosts
 
-    # Step 3: SSH into VM and run Docker build and container commands
-    - name: Connect to VM and Build & Run Docker Containers
-      run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@34.132.171.168 << 'EOF'
+        # Step 3: SSH into VM and run Docker build and container commands
+        ssh -T -o StrictHostKeyChecking=no ubuntu@34.132.171.168 << 'EOF'
           # Navigate to the directory where your Dockerfiles are located
           cd /home/kiritisagar
 
