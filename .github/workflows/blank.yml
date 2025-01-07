@@ -20,21 +20,16 @@ jobs:
         # Optionally, add the VM's public key to known hosts to prevent verification prompt
         ssh-keyscan -H 34.132.171.168 >> ~/.ssh/known_hosts
 
-    - name: SSH into VM and run Docker commands
-      run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@34.132.171.168 << 'EOF'
-          # Ensure user has permission to run Docker commands by adding to the Docker group
-          sudo usermod -aG docker ubuntu
+    - name: Deploy Docker container on VM
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: 34.132.171.168
+        username: ubuntu
+        key: ${{ secrets.GCP_SSH_KEY }}  # Use the SSH private key stored as a GitHub secret
+        port: 22
+        script: |
           
-          # Log out and log back in for group changes to take effect
-          newgrp docker || true
-
-          # Navigate to the directory where your Dockerfiles are located
+          # Run the new Docker container
           cd /home/kiritisagar
-          
-          # Build Docker image
-          docker build -t your-image-name .
-          
-          # Run the Docker container
+          docker build -t your-image-name . 
           docker run -d -p 80:80 your-image-name
-        EOF
