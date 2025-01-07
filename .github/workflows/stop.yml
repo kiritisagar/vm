@@ -20,9 +20,11 @@ jobs:
     - name: Authenticate with Google Cloud
       run: |
         echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
+        cat $HOME/gcp-key.json # To confirm the file contents
         gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
 
     - name: Deploy to Google Cloud
       run: |
-        # Replace with your specific deployment commands
+        # Your deploy commands here, for example:
+        # gcloud app browse
         gcloud deploy --project keen-metric-442709-h0
