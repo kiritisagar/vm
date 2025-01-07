@@ -1,17 +1,17 @@
-name: Docker Build & Run on GCP VM
+name: GCP VM START
 
 on:
   workflow_dispatch:  # This allows manual triggering of the workflow
 
 jobs:
-  docker-build-run:
+  authenticate-gcp:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 1: Set up Google Cloud SDK
+      # Step 1: Set up Google Cloud CLI
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
@@ -19,23 +19,56 @@ jobs:
           version: latest
           skip_install: false
 
-      # Step 2: Authenticate with Google Cloud
+      # Step 2: Check if the GCP_KEY_JSON secret is available
+      - name: Check GCP_KEY_JSON secret length
+        run: |
+          echo "Secret length: ${#GCP_KEY_JSON}"
+          if [ -z "${GCP_KEY_JSON}" ]; then
+            echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
+          fi
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
+
+      # Step 3: Write the GCP_KEY_JSON to a file
+      - name: Save GCP service account key to file
+        run: |
+          echo "$GCP_KEY_JSON" > $HOME/gcp-key.json
+        env:
+          GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
+
+      # Step 4: Validate the GCP service account key (check if JSON is valid)
+      - name: Validate GCP Key JSON
+        run: |
+          if jq empty $HOME/gcp-key.json; then
+            echo "Valid JSON file"
+          else
+            echo "Error: The JSON file is invalid" && exit 1
+          fi
+
+      # Step 5: Authenticate with Google Cloud using the service account key
       - name: Authenticate with Google Cloud
         run: |
-          echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
           gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
+          gcloud config set project keen-metric-442709-h0
 
-      # Step 3: SSH into the VM to build and run Docker containers
-      - name: SSH into VM and Build & Run Docker
+      # Step 6: Set up SSH key and test connectivity
+      - name: Set up SSH key and test connectivity
         run: |
+          set -x
           mkdir -p ~/.ssh
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
           chmod 600 ~/.ssh/google_compute_engine
           echo "SSH key and permissions set."
+          
+          # Test SSH connectivity to the instance
+          ssh-keyscan -H 34.67.240.211 || { echo "ssh-keyscan failed"; exit 1; }
+          echo "ssh-keyscan completed successfully"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
 
-          # Run Docker build and container command using SSH
+      # Step 7: Run Docker build and container command using gcloud SSH
+      - name: SSH into VM via IAP and run Docker commands
+        run: |
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "
             docker build -t my-app /home/kiritisagar &&
             docker run -d --name my-app-container -p 80:80 my-app
