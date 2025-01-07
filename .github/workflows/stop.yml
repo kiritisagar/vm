@@ -50,3 +50,10 @@ jobs:
         run: |
           gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
           gcloud config set project keen-metric-442709-h0
+
+      # Step 6: Stop the GCP VM instance
+      - name: Stop GCP VM Instance
+        run: |
+          gcloud compute instances stop spot --zone us-central1-a
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
