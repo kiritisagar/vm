@@ -19,14 +19,23 @@ jobs:
 
     - name: Check if the secret is being passed
       run: |
-        echo "Secret length: ${#GCP_KEY_JSON}"  # Debugging line
+        echo "Secret length: ${#GCP_KEY_JSON}"  # Debugging line to check if the secret is being passed
 
-    - name: Authenticate with Google Cloud
+    - name: Validate the JSON format and authenticate with Google Cloud
       run: |
+        # Step 1: Check if the secret is valid JSON by writing it to a file
         echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
-        echo "Secret length: ${#GCP_KEY_JSON}"  # For debugging
-        cat $HOME/gcp-key.json # To confirm the file contents
+
+        # Step 2: Validate if the JSON is correctly formatted
+        if jq empty $HOME/gcp-key.json; then
+          echo "Valid JSON file"
+        else
+          echo "Error: The JSON file is invalid" && exit 1
+        fi
+
+        # Step 3: Authenticate with Google Cloud using the service account key file
         gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
+        gcloud config set project keen-metric-442709-h0
 
     - name: Deploy to Google Cloud
       run: |
