@@ -17,11 +17,14 @@ jobs:
         project_id: keen-metric-442709-h0
         credentials: ${{ secrets.GCP_KEY_JSON }}  # This uses the GitHub secret directly
 
-    - name: Check if the secret is being passed
+    - name: Debugging the GCP_KEY_JSON secret
       run: |
-        echo "Secret length: ${#GCP_KEY_JSON}"  # Debugging line to check if the secret is being passed
+        echo "Secret length: ${#GCP_KEY_JSON}"  # Check the length of the secret
+        if [ -z "${{ secrets.GCP_KEY_JSON }}" ]; then
+          echo "Error: GCP_KEY_JSON secret is not found or is empty" && exit 1
+        fi
 
-    - name: Validate the JSON format and authenticate with Google Cloud
+    - name: Write GCP key JSON to a file and validate
       run: |
         # Step 1: Check if the secret is valid JSON by writing it to a file
         echo "${{ secrets.GCP_KEY_JSON }}" > $HOME/gcp-key.json
