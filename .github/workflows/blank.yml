@@ -51,19 +51,20 @@ jobs:
           gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
           gcloud config set project keen-metric-442709-h0
 
-      # Step 6: Set up SSH key and test connectivity
+      # Step 6: Use existing SSH key for GCP VM connection
       - name: Set up SSH key and test connectivity
         run: |
           set -x
           mkdir -p ~/.ssh
           
-          # Add SSH private key from secrets to the instance
+          # Use the existing private key provided via secrets
           echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/google_compute_engine
           chmod 600 ~/.ssh/google_compute_engine
           echo "SSH key and permissions set."
-          
-          # Test SSH connectivity using gcloud with -o StrictHostKeyChecking=no
-          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null --no-add-key
+
+          # Test SSH connectivity with `--no-add-key` to prevent key upload
+          gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "echo 'SSH successful'" \
+            -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null --no-add-key
           if [ $? -eq 0 ]; then
             echo "SSH connectivity test passed."
           else
@@ -78,6 +79,6 @@ jobs:
           gcloud compute ssh spot --zone us-central1-a --tunnel-through-iap --command "
             docker build -t my-app /home/kiritisagar &&
             docker run -d --name my-app-container -p 80:80 my-app
-          "
+          " -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null --no-add-key
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_KEY_JSON }}
