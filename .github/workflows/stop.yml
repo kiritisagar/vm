@@ -15,7 +15,7 @@ jobs:
 
     - name: Authenticate with Google Cloud
       run: |
-        echo ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }} | gcloud auth activate-service-account --key-file=-
+        echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | gcloud auth activate-service-account --key-file=-
         gcloud auth list
         gcloud config list
         gcloud projects list
